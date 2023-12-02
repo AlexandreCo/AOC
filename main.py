@@ -63,6 +63,7 @@ class cube:
         else:
             return True
 
+
 if __name__ == '__main__':
 
     file = open('./2.txt', "r")
@@ -104,9 +105,9 @@ if __name__ == '__main__':
                             green.draw(nb)
         print(blue.getMax(),red.getMax(),green.getMax())
         print(blue.valid(),red.valid(),green.valid())
-        if(blue.valid() & red.valid() & green.valid()):
-            print("ok")
-            sum+=nbline
+        power=blue.getMax()*red.getMax()*green.getMax();
+        print(power)
+        sum+=power
 
 
 
