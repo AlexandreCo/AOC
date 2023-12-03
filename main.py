@@ -46,12 +46,18 @@ PART_NUMBER=4
 MAX_RAW=140
 MAX_COL=140
 
+
 class Case:
     monType=NONE
     number=0
     label=False
-    def __init__(self,type):
+    lblNbPartNumber = 0
+    numberID=0;
+    listId = []
+    gearValue=1;
+    def __init__(self,type,id):
         self.monType=type
+        self.numberID = id
 
     def getType(self):
         return self.monType
@@ -65,60 +71,86 @@ class Case:
             return False
     def setNumber(self,num):
         self.number=num
-    def changeType(self,type):
-        self.monType=type
+
+    def setPFalseNumber(self,id):
+        self.monType=FALSE_NUMBER
+        self.numberID = id
+    def setPartNumber(self):
+        self.monType=PART_NUMBER
+
+    def getId(self):
+        return self.numberID
+
     def setLabel(self,label):
         self.label=label
     def getLabel(self):
         return self.label
 
+    def labelNewPartNumber(self,id,number):
+        if(self.monType==LABEL):
+            if((id in self.listId) == False):
+                self.lblNbPartNumber+=1
+                self.listId.append(id)
+                self.gearValue=self.gearValue*number;
+                #print(self.listId)
+    def getLabelPartNumber(self):
+        return self.lblNbPartNumber
+    def getGearValue(self):
+        gearValue=0
+        if(self.monType==LABEL):
+            if(self.lblNbPartNumber==2):
+                return self.gearValue
+        return gearValue
+
 def display():
     for raw in range(0, MAX_RAW):
+        print("|", end='')
         for col in range(0, MAX_COL):
             case=Plateau[raw][col]
             type=case.getType()
+
             if(type==PART_NUMBER):
-                print(case.getNumber(), end='')
+                value=case.getNumber()
+                print(f"Part({value:>3d})|", end='')
+
             else:
                 if (type == NUMBER):
-                    num=case.getNumber()
-                    if(num<10):
-                        print('X', end='')
-                    else:
-                        if (num < 100):
-                            print('XX', end='')
-                        else:
-                            if (num < 1000):
-                                print('XXX', end='')
-                            else:
-                                print('XXXX', end='')
+                    value = case.getNumber()
+                    print(f"number({value:>3d})|", end='')
                 else:
                     if (type == FALSE_NUMBER):
-                        print("", end='')
+                        print(f"FN({value:>3d})|", end='')
                     else:
                         if (type == LABEL):
-                            print(case.getLabel(), end='')
+                            #print(case.getLabelPartNumber(), end='')
+                            value=case.getLabelPartNumber()
+                            geavValue=case.getGearValue()
+                            print(f"label({value},{geavValue})", end='')
                         else:
                             if (type == NONE):
-                                print(" ", end='')
+                                print("   |", end='')
                             else:
-                                print("ERROR", type, end='')
+                                print("ERROR|", type, end='')
         print("")
     print("")
 def getNumber(raw,col):
     num=Plateau[raw][col].getNumber()
-
+    id=Plateau[raw][col].getId()
     for i in range (col+1,col+4):
         if(i>=MAX_COL):
             return num
         if(Plateau[raw][i].isNumber()):
             num=num*10+Plateau[raw][i].getNumber()
-            Plateau[raw][i].changeType(FALSE_NUMBER)
-            Plateau[raw][i].setNumber(0)
-            if (isPartNumbers(raw,i)):
-                Plateau[raw][col].changeType(PART_NUMBER)
+            Plateau[raw][i].setPFalseNumber(id)
         else:
             return num
+
+    for i in range (col+1,col+4):
+        if(i>=MAX_COL):
+            return num
+        if(Plateau[raw][i].getType()==FALSE_NUMBER):
+            Plateau[raw][i].setNumber(num)
+
     return num
 
 
@@ -134,18 +166,19 @@ def getCase(raw,col):
         return False
     return True
 
-def isPartNumbers(raw,col):
+def isPartNumbers(raw,col,id,number):
     partNumber=False
-
     for raw_i in range (-1,2):
         for col_i in range(-1, 2):
             if(getCase(raw+raw_i,col+col_i)):
                 if(Plateau[raw+raw_i][col+col_i].getType()==LABEL):
                     partNumber = True
+                    Plateau[raw + raw_i][col + col_i].labelNewPartNumber(id,number)
     return partNumber
 
 def numerise():
     sum=0
+    current_id=0
     for raw in range(0, MAX_RAW):
         for col in range(0, MAX_COL):
             case=Plateau[raw][col]
@@ -153,17 +186,27 @@ def numerise():
             if(type==NUMBER):
                 num=getNumber(raw,col)
                 Plateau[raw][col].setNumber(num)
-                if (isPartNumbers(raw, col)):
-                    Plateau[raw][col].changeType(PART_NUMBER)
-    sum+=Plateau[raw][col].getNumber()
-    print(sum)
+
+def searchPartNumber():
+    for raw in range(0, MAX_RAW):
+        for col in range(0, MAX_COL):
+            case=Plateau[raw][col]
+            type=case.getType()
+            if(type==NUMBER):
+                id = Plateau[raw][col].getId()
+                num = Plateau[raw][col].getNumber()
+                if (isPartNumbers(raw, col,id,num)):
+                    Plateau[raw][col].setPartNumber()
+
+            if(type==FALSE_NUMBER):
+                isPartNumbers(raw, col,id,num)
 
 def getSum():
     sum=0
     for raw in range(0, MAX_RAW):
         for col in range(0, MAX_COL):
-            if(Plateau[raw][col].getType()==PART_NUMBER):
-                sum+=Plateau[raw][col].getNumber()
+            value=Plateau[raw][col].getGearValue()
+            sum+=value
     print(sum)
 
 if __name__ == '__main__':
@@ -176,6 +219,7 @@ if __name__ == '__main__':
     Plateau = [[0 for x in range(MAX_COL)] for y in range(MAX_RAW)]
 
     raw=0
+    id=0
     for line in lines:
         line=line.strip()
         col=0
@@ -183,13 +227,14 @@ if __name__ == '__main__':
             type=line[i]
             if(line[i].isnumeric()):
                 num=int(line[i])
-                Plateau[raw][col]=Case(NUMBER)
+                id+=1
+                Plateau[raw][col]=Case(NUMBER,id)
                 Plateau[raw][col].setNumber(num)
             else:
                 if(line[i]=='.') :
-                    Plateau[raw][col] = Case(NONE)
+                    Plateau[raw][col] = Case(NONE,0)
                 else :
-                    Plateau[raw][col] = Case(LABEL)
+                    Plateau[raw][col] = Case(LABEL,0)
                     Plateau[raw][col].setLabel(line[i])
             #print(raw, col, Plateau[raw][col].getType())
             col += 1
@@ -197,5 +242,7 @@ if __name__ == '__main__':
 
     #print(sum)
     numerise()
+    searchPartNumber()
     display()
     getSum()
+
