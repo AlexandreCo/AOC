@@ -1,5 +1,6 @@
 import re
 from enum import Enum
+from array import *
 
 class Color(Enum):
     RED = 1
@@ -36,79 +37,165 @@ def removeLetter(line) :
     return re.sub("[a-z]", "", line)
 
 
-class cube:
-    max=0
-    nbCube=0
-    max_bag=0
-    def __init__(self, max_bag):
-        self.max_bag=max_bag
-    def draw(self, newCubes):
-        self.nbCube = self.nbCube + newCubes
-        if( newCubes > self.max ):
-            self.max = newCubes
+NONE=" "
+NUMBER=1
+LABEL="*"
+FALSE_NUMBER=3
+PART_NUMBER=4
 
-    def getMax(self):
-        return self.max;
+MAX_RAW=140
+MAX_COL=140
 
+class Case:
+    monType=NONE
+    number=0
+    label=False
+    def __init__(self,type):
+        self.monType=type
+
+    def getType(self):
+        return self.monType
     def getNumber(self):
-        return self.nbCube
+        return self.number
 
-    def reset(self):
-        self.max = 0
-        self.nbCube = 0
-
-    def valid(self):
-        if(self.max > self.max_bag ):
-            return False
-        else:
+    def isNumber(self):
+        if(self.monType==NUMBER):
             return True
+        else:
+            return False
+    def setNumber(self,num):
+        self.number=num
+    def changeType(self,type):
+        self.monType=type
+    def setLabel(self,label):
+        self.label=label
+    def getLabel(self):
+        return self.label
 
+def display():
+    for raw in range(0, MAX_RAW):
+        for col in range(0, MAX_COL):
+            case=Plateau[raw][col]
+            type=case.getType()
+            if(type==PART_NUMBER):
+                print(case.getNumber(), end='')
+            else:
+                if (type == NUMBER):
+                    num=case.getNumber()
+                    if(num<10):
+                        print('X', end='')
+                    else:
+                        if (num < 100):
+                            print('XX', end='')
+                        else:
+                            if (num < 1000):
+                                print('XXX', end='')
+                            else:
+                                print('XXXX', end='')
+                else:
+                    if (type == FALSE_NUMBER):
+                        print("", end='')
+                    else:
+                        if (type == LABEL):
+                            print(case.getLabel(), end='')
+                        else:
+                            if (type == NONE):
+                                print(" ", end='')
+                            else:
+                                print("ERROR", type, end='')
+        print("")
+    print("")
+def getNumber(raw,col):
+    num=Plateau[raw][col].getNumber()
+
+    for i in range (col+1,col+4):
+        if(i>=MAX_COL):
+            return num
+        if(Plateau[raw][i].isNumber()):
+            num=num*10+Plateau[raw][i].getNumber()
+            Plateau[raw][i].changeType(FALSE_NUMBER)
+            Plateau[raw][i].setNumber(0)
+            if (isPartNumbers(raw,i)):
+                Plateau[raw][col].changeType(PART_NUMBER)
+        else:
+            return num
+    return num
+
+
+def getCase(raw,col):
+
+    if(raw<0):
+        return False
+    if(raw>=MAX_RAW):
+        return False
+    if(col<0):
+        return False
+    if(col>=MAX_COL):
+        return False
+    return True
+
+def isPartNumbers(raw,col):
+    partNumber=False
+
+    for raw_i in range (-1,2):
+        for col_i in range(-1, 2):
+            if(getCase(raw+raw_i,col+col_i)):
+                if(Plateau[raw+raw_i][col+col_i].getType()==LABEL):
+                    partNumber = True
+    return partNumber
+
+def numerise():
+    sum=0
+    for raw in range(0, MAX_RAW):
+        for col in range(0, MAX_COL):
+            case=Plateau[raw][col]
+            type=case.getType()
+            if(type==NUMBER):
+                num=getNumber(raw,col)
+                Plateau[raw][col].setNumber(num)
+                if (isPartNumbers(raw, col)):
+                    Plateau[raw][col].changeType(PART_NUMBER)
+    sum+=Plateau[raw][col].getNumber()
+    print(sum)
+
+def getSum():
+    sum=0
+    for raw in range(0, MAX_RAW):
+        for col in range(0, MAX_COL):
+            if(Plateau[raw][col].getType()==PART_NUMBER):
+                sum+=Plateau[raw][col].getNumber()
+    print(sum)
 
 if __name__ == '__main__':
 
-    file = open('./2.txt', "r")
+    file = open('./3.txt', "r")
     lines = file.readlines()
     file.close()
     sum = 0
-    nbline = 0
-    #only 12 red cubes, 13 green cubes, and 14 blue cubes
+    # Creates a list containing 5 lists, each of 8 items, all set to 0
+    Plateau = [[0 for x in range(MAX_COL)] for y in range(MAX_RAW)]
 
-    blue=cube(14)
-    red=cube(12)
-    green=cube(13)
+    raw=0
     for line in lines:
-        nbline += 1
         line=line.strip()
-        blue.reset()
-        red.reset()
-        green.reset()
-        print("line", line)
-        sublines=line.split(":")
-        for subline in sublines :
-            #print(subline)
-            subsets=subline.split(";")
-            for subset in subsets:
-                draws = subset.split(",")
-                nbBlue = 0
-                nbRed = 0
-                nbGreen = 0
-                for draw in draws:
-                    objs=draw.split(" ")
-                    if(objs[0] != "Game"):
-                        nb=int(objs[1])
-                        color=objs[2]
-                        if color == "blue":
-                            blue.draw(nb)
-                        if color == "red":
-                            red.draw(nb)
-                        if color == "green":
-                            green.draw(nb)
-        print(blue.getMax(),red.getMax(),green.getMax())
-        print(blue.valid(),red.valid(),green.valid())
-        power=blue.getMax()*red.getMax()*green.getMax();
-        print(power)
-        sum+=power
+        col=0
+        for i in range(0, len(line)):
+            type=line[i]
+            if(line[i].isnumeric()):
+                num=int(line[i])
+                Plateau[raw][col]=Case(NUMBER)
+                Plateau[raw][col].setNumber(num)
+            else:
+                if(line[i]=='.') :
+                    Plateau[raw][col] = Case(NONE)
+                else :
+                    Plateau[raw][col] = Case(LABEL)
+                    Plateau[raw][col].setLabel(line[i])
+            #print(raw, col, Plateau[raw][col].getType())
+            col += 1
+        raw += 1
 
-
-
-    print(sum)
+    #print(sum)
+    numerise()
+    display()
+    getSum()
