@@ -2,8 +2,7 @@ import re
 from enum import Enum
 from array import *
 
-
-
+debug=0
 def isWinningNumbers(var,numbers):
 
 
@@ -13,6 +12,73 @@ def isWinningNumbers(var,numbers):
             return True
     return False
 
+
+def getCardNumbers(lines,numcard):
+
+    line=lines[numcard]
+    subline = line.strip().split("|")
+    subsubline = subline[0].strip().split(":")
+    cardNumbers = subsubline[1].strip().replace('  ', ' ').split(" ")
+    return cardNumbers
+
+def getCardName(lines,numcard):
+    line=lines[numcard].strip()
+    subline = line.strip().split("|")
+    subsubline = subline[0].strip().split(":")
+    cardName = subsubline[0].strip()
+    return cardName
+
+def getNumbers(lines,numcard):
+    line=lines[numcard].strip()
+    subline = line.strip().split("|")
+    subsubline = subline[0].strip().split(":")
+    numbers = subline[1].strip().replace('  ', ' ').split(" ")
+    return numbers
+
+def pickCard(lines,numCard):
+    global nbTotalPickCard
+    cardNumbers = getCardNumbers(lines,numCard)
+    numbers = getNumbers(lines,numCard)
+    name = getCardName(lines,numCard)
+    match = 0
+    if (debug):
+        print(f"{name} [", end='')
+    nbTotalPickCard += 1
+    for number in cardNumbers:
+        if (isWinningNumbers(number, numbers)):
+            match+=1
+            if (debug):
+                print(f" ({number})", end='')
+        else:
+            if (debug):
+                print(f" {number}", end='')
+    if (debug):
+        print(f"] match={match} total : {nbTotalPickCard}")
+
+    return match
+
+
+def getCopy(lines,numCard,match):
+    for i in range(numCard+1, match + numCard+1):
+        name = getCardName(lines, i)
+        if (debug>1):
+            print(f"New Copy : idx {i} {name}")
+        testPickCard(lines,i)
+
+
+def testPickCard(lines,numCard):
+    name=getCardName(lines,numCard)
+    if (debug>1):
+        print(f"testPick : {name} ({numCard}),")
+    if (debug):
+        print("{")
+    match = pickCard(lines,numCard)
+    if (match):
+        getCopy(lines, numCard, match)
+    if (debug):
+        print("}")
+
+nbTotalPickCard = 0
 if __name__ == '__main__':
 
     file = open('./4.txt', "r")
@@ -21,24 +87,13 @@ if __name__ == '__main__':
     sum = 0
 
     id=0
-    for line in lines:
-        line.strip()
-        subline=line.strip().split("|")
-        subsubline=subline[0].strip().split(":")
-        cardNumbers=subsubline[1].strip().replace('  ', ' ').split(" ")
-        numbers=subline[1].strip().replace('  ', ' ').split(" ")
-        print(f"{cardNumbers} [",end='')
-        cardvalue=0
-        for number in cardNumbers:
-            if(isWinningNumbers(number,numbers)):
-                if(cardvalue):
-                    cardvalue*=2
-                else:
-                    cardvalue = 1
-                print(f" ({number})",end='')
-            else:
-                print(f" {number}", end='')
-        print(f"] {cardvalue}")
-        sum+=cardvalue
 
-    print(f"result={sum}")
+    numCard=0
+    for line in lines:
+        testPickCard(lines,numCard)
+        numCard+=1
+
+    print(nbTotalPickCard)
+
+
+
