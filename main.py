@@ -5,6 +5,8 @@ from array import *
 
 debug=0
 
+cSampleLength=1000000
+
 estateSeed = -1
 eStateSeedToSoil = estateSeed+1
 eStateSoilToFertilizer = eStateSeedToSoil+1
@@ -64,16 +66,90 @@ class ElemConverter :
         return result
 
 def testSeed(seed):
+    debug=0
     tmp=int(seed)
+    if(debug):
+        print(f"S {tmp}",end="")
     for i in range(eStateSeedToSoil,eMaxState):
         tmp=ElmtConvTab[i].convert(tmp)
+        if(debug):
+            print(f" {tmp}", end="")
+    if(debug):
+        print("")
     return tmp
 
+
+
+def saveResult(location,result,seed,num_seed):
+    debug=0
+    if (result == 0):
+        result = location
+        save_seed = seed
+        save_num_seed = num_seed
+        if debug:
+            print(f"first result:{result} at seed {seed} (seed range {num_seed})")
+    else:
+        if (location < result):
+            result = location
+            save_seed = seed
+            save_num_seed = num_seed
+            if debug:
+                print(f"new result:{result} at seed {seed} (seed range {num_seed})")
+    return result, save_num_seed, save_seed
+
+def dicotomise(min, max):
+    range=max-min;
+    return min+int(range/2);
+def getMin(seedRangeStart,seedRangeLenght,result, save_num_seed, save_seed):
+    nbSample = int(seedRangeLenght)
+
+    indexMin=seedRangeStart
+    seedRangeEnd=seedRangeStart+seedRangeLenght-1
+    indexMax=seedRangeEnd
+
+    while True:
+        seed=indexMin
+        location=testSeed(seed)
+        saveResult(location,result, save_num_seed, save_seed)
+        print(seed,location)
+
+        print(indexMin, indexMax)
+
+        while ((indexMax-indexMin)>1):
+            test_seed=dicotomise(indexMin, indexMax)
+            test_location=testSeed(test_seed)
+            diffLocation=test_location-location
+            diffSeed=test_seed - seed
+            if(diffLocation!=diffSeed):
+                indexMax=test_seed
+            else:
+                indexMin=test_seed
+            print(diffLocation, diffSeed,indexMin,indexMax)
+        indexMin=indexMax
+        indexMax=seedRangeEnd
+
+
+
+
+
+
+
+
+    return result, save_num_seed, save_seed
+
+def getSeedList(lines,seeds_list,seeds_range):
+    line=lines.pop(0)
+
+    nbSeedRange=int(len(line.split(":")[1].strip().split(" "))/2)
+    seeds_raw = line.split(":")[1].strip().split(" ")
+    for num_seed in range(0,nbSeedRange):
+        seedRangeStart=int(seeds_raw.pop(0))
+        seedRangeLenght=int(seeds_raw.pop(0))
+        seeds_list.append(seedRangeStart)
+        seeds_range.append(seedRangeLenght)
+
 if __name__ == '__main__':
-
-
-
-    file = open('./5.txt', "r")
+    file = open('./5-tiny.txt', "r")
     lines = file.readlines()
     file.close()
 
@@ -81,9 +157,10 @@ if __name__ == '__main__':
     state = estateSeed
     ElmtConvTab=[0 for x in range(eMaxState)]
 
-    seeds_list=lines.pop(0).split(":")[1].strip().split(" ")
-    print(f"seedlist : {seeds_list}")
 
+    seeds_list=[]
+    seeds_range=[]
+    getSeedList(lines,seeds_list,seeds_range)
 
     for line in lines:
         if(len(line.strip())==0):
@@ -96,19 +173,18 @@ if __name__ == '__main__':
                 #real element
                 ElmtConvTab[state].addElement(element[0],element[1],element[2])
 
-    for seed in seeds_list:
-        location=testSeed(seed)
-        if(result==0):
-            result=location
-        else:
-            if(location<result):
-                result=location
-    print(result)
+    result=0;
+    save_num_seed=0
+    save_seed=0
 
+    seeds_list_tmp = seeds_list.copy()
+    seeds_range_tmp = seeds_range.copy()
 
-
-
-
+    for num_seed in range(0,int(len(seeds_list))):
+        seedRangeStart=int(seeds_list.pop(0))
+        seedRangeLenght=int(seeds_range.pop(0))
+        result, save_num_seed, save_seed = getMin(seedRangeStart, seedRangeLenght,result, save_num_seed, save_seed)
+    print(f"result : {result} at seed {save_seed} of range {save_num_seed}")
 
 
 
