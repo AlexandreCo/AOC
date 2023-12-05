@@ -39,30 +39,25 @@ class ElemConverter :
 
 
     def convert(self,seed):
-        debug=0
+        self.debug=0
         idx=0
         result=seed
         for destRangeStart in self.destRangeStartList:
+
             start=self.srcRangeStartList[idx]
             end=self.srcRangeStartList[idx]+self.rangeLenghtList[idx]
-            if(self.debug):
-                print(f"[{start}-{end}],{seed}",end="")
             if(seed>=start):
-                if (seed <= end):
+                if (seed < end):
                         result=seed+self.destRangeStartList[idx]-self.srcRangeStartList[idx]
                         if (self.debug):
+                            print(f"{self.type}:[{start}-{end}],{seed}", end="")
                             print(f" ok : {result}")
                         return result
-                else:
-                    if (self.debug):
-                        print(" ko")
-            else:
-                if (self.debug):
-                    print(" ko")
             idx+=1
 
         if (self.debug):
-            print(f" XX : {result}")
+            print(f"{self.type}:[XX-XX] ,{seed}", end="")
+            print(f" ok : {result}")
         return result
 
 def testSeed(seed):
@@ -80,27 +75,42 @@ def testSeed(seed):
 
 
 
-def saveResult(location,result,seed,num_seed):
+def saveResult(location,result,seed):
     debug=0
     if (result == 0):
         result = location
-        save_seed = seed
-        save_num_seed = num_seed
         if debug:
-            print(f"first result:{result} at seed {seed} (seed range {num_seed})")
+            print(f"first result:{result}")
     else:
         if (location < result):
             result = location
-            save_seed = seed
-            save_num_seed = num_seed
             if debug:
-                print(f"new result:{result} at seed {seed} (seed range {num_seed})")
-    return result, save_num_seed, save_seed
+                print(f"new result:{result} ({seed})")
+    return result
 
-def dicotomise(min, max):
-    range=max-min;
+def dichotomise(indexMin, indexMax,seed,location):
+    debug=0
+    while ((indexMax - indexMin) > 1):
+        range = indexMax - indexMin;
+        test_seed = indexMin+int(range/2)
+        test_location = testSeed(test_seed)
+        diffLocation = test_location - location
+        diffSeed = test_seed - seed
+        if (diffLocation != diffSeed):
+            indexMax = test_seed
+        else:
+            indexMin = test_seed
+        if(debug):
+            print(f"Dichotomy {indexMin},{indexMax}")
+    return indexMax
+
+
+
+
     return min+int(range/2);
-def getMin(seedRangeStart,seedRangeLenght,result, save_num_seed, save_seed):
+def getMin(seedRangeStart,seedRangeLenght,result):
+    debug=0
+    dicho=1
     nbSample = int(seedRangeLenght)
 
     indexMin=seedRangeStart
@@ -110,32 +120,18 @@ def getMin(seedRangeStart,seedRangeLenght,result, save_num_seed, save_seed):
     while True:
         seed=indexMin
         location=testSeed(seed)
-        saveResult(location,result, save_num_seed, save_seed)
-        print(seed,location)
-
-        print(indexMin, indexMax)
-
-        while ((indexMax-indexMin)>1):
-            test_seed=dicotomise(indexMin, indexMax)
-            test_location=testSeed(test_seed)
-            diffLocation=test_location-location
-            diffSeed=test_seed - seed
-            if(diffLocation!=diffSeed):
-                indexMax=test_seed
-            else:
-                indexMin=test_seed
-            print(diffLocation, diffSeed,indexMin,indexMax)
-        indexMin=indexMax
+        result=saveResult(location, result,seed)
+        if (debug):
+            print(f"S={seed} L={location} iMin={indexMin}  iMax={indexMax}")
+        if(indexMin>=indexMax):
+            break
+        if(dicho):
+            indexMin=dichotomise(indexMin,indexMax,seed,location)
+        else:
+            indexMin +=1
         indexMax=seedRangeEnd
 
-
-
-
-
-
-
-
-    return result, save_num_seed, save_seed
+    return result
 
 def getSeedList(lines,seeds_list,seeds_range):
     line=lines.pop(0)
@@ -149,7 +145,8 @@ def getSeedList(lines,seeds_list,seeds_range):
         seeds_range.append(seedRangeLenght)
 
 if __name__ == '__main__':
-    file = open('./5-tiny.txt', "r")
+    file = open('./5.txt', "r")
+    debug=0
     lines = file.readlines()
     file.close()
 
@@ -183,8 +180,10 @@ if __name__ == '__main__':
     for num_seed in range(0,int(len(seeds_list))):
         seedRangeStart=int(seeds_list.pop(0))
         seedRangeLenght=int(seeds_range.pop(0))
-        result, save_num_seed, save_seed = getMin(seedRangeStart, seedRangeLenght,result, save_num_seed, save_seed)
-    print(f"result : {result} at seed {save_seed} of range {save_num_seed}")
+        if(debug):
+            print(f"range : {seedRangeStart} {seedRangeLenght}")
+        result = getMin(seedRangeStart, seedRangeLenght,result)
+    print(f"result : {result}")
 
 
 
