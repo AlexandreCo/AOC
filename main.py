@@ -1,99 +1,114 @@
 import re
 from enum import Enum
 from array import *
+#import numpy as nm
 
 debug=0
-def isWinningNumbers(var,numbers):
+
+estateSeed = -1
+eStateSeedToSoil = estateSeed+1
+eStateSoilToFertilizer = eStateSeedToSoil+1
+eStateFertilizerToWater = eStateSoilToFertilizer+1
+eStateWaterToLight = eStateFertilizerToWater+1
+eStateLightToTemperature = eStateWaterToLight+1
+eStateTemperatureToHumidity = eStateLightToTemperature+1
+eStateHumidityToLocation = eStateTemperatureToHumidity+1
+eMaxState=eStateHumidityToLocation+1
+
+class ElemConverter :
+    def __init__(self,type):
+        self.type=type
+        self.destRangeStartList = []
+        self.srcRangeStartList=[]
+        self.rangeLenghtList = []
+        self.debug = 0
+
+    def addElement(self,destRangeStart,srcRangeStart,rangeLenght):
+        #print(f"{self.type} {destRangeStart}, {srcRangeStart}, {rangeLenght}")
+        self.destRangeStartList.append(int(destRangeStart))
+        self.srcRangeStartList.append(int(srcRangeStart))
+        self.rangeLenghtList.append(int(rangeLenght))
+
+    def displayElements(self):
+        idx=0
+        for destRangeStart in self.destRangeStartList:
+            print(self.destRangeStartList[idx], self.srcRangeStartList[idx], self.rangeLenghtList[idx])
+            idx+=1
 
 
-    for number in numbers:
+    def convert(self,seed):
+        debug=0
+        idx=0
+        result=seed
+        for destRangeStart in self.destRangeStartList:
+            start=self.srcRangeStartList[idx]
+            end=self.srcRangeStartList[idx]+self.rangeLenghtList[idx]
+            if(self.debug):
+                print(f"[{start}-{end}],{seed}",end="")
+            if(seed>=start):
+                if (seed <= end):
+                        result=seed+self.destRangeStartList[idx]-self.srcRangeStartList[idx]
+                        if (self.debug):
+                            print(f" ok : {result}")
+                        return result
+                else:
+                    if (self.debug):
+                        print(" ko")
+            else:
+                if (self.debug):
+                    print(" ko")
+            idx+=1
 
-        if(int(number)==int(var)):
-            return True
-    return False
+        if (self.debug):
+            print(f" XX : {result}")
+        return result
 
+def testSeed(seed):
+    tmp=int(seed)
+    for i in range(eStateSeedToSoil,eMaxState):
+        tmp=ElmtConvTab[i].convert(tmp)
+    return tmp
 
-def getCardNumbers(lines,numcard):
-
-    line=lines[numcard]
-    subline = line.strip().split("|")
-    subsubline = subline[0].strip().split(":")
-    cardNumbers = subsubline[1].strip().replace('  ', ' ').split(" ")
-    return cardNumbers
-
-def getCardName(lines,numcard):
-    line=lines[numcard].strip()
-    subline = line.strip().split("|")
-    subsubline = subline[0].strip().split(":")
-    cardName = subsubline[0].strip()
-    return cardName
-
-def getNumbers(lines,numcard):
-    line=lines[numcard].strip()
-    subline = line.strip().split("|")
-    subsubline = subline[0].strip().split(":")
-    numbers = subline[1].strip().replace('  ', ' ').split(" ")
-    return numbers
-
-def pickCard(lines,numCard):
-    global nbTotalPickCard
-    cardNumbers = getCardNumbers(lines,numCard)
-    numbers = getNumbers(lines,numCard)
-    name = getCardName(lines,numCard)
-    match = 0
-    if (debug):
-        print(f"{name} [", end='')
-    nbTotalPickCard += 1
-    for number in cardNumbers:
-        if (isWinningNumbers(number, numbers)):
-            match+=1
-            if (debug):
-                print(f" ({number})", end='')
-        else:
-            if (debug):
-                print(f" {number}", end='')
-    if (debug):
-        print(f"] match={match} total : {nbTotalPickCard}")
-
-    return match
-
-
-def getCopy(lines,numCard,match):
-    for i in range(numCard+1, match + numCard+1):
-        name = getCardName(lines, i)
-        if (debug>1):
-            print(f"New Copy : idx {i} {name}")
-        testPickCard(lines,i)
-
-
-def testPickCard(lines,numCard):
-    name=getCardName(lines,numCard)
-    if (debug>1):
-        print(f"testPick : {name} ({numCard}),")
-    if (debug):
-        print("{")
-    match = pickCard(lines,numCard)
-    if (match):
-        getCopy(lines, numCard, match)
-    if (debug):
-        print("}")
-
-nbTotalPickCard = 0
 if __name__ == '__main__':
 
-    file = open('./4.txt', "r")
+
+
+    file = open('./5.txt', "r")
     lines = file.readlines()
     file.close()
-    sum = 0
 
-    id=0
+    result = 0
+    state = estateSeed
+    ElmtConvTab=[0 for x in range(eMaxState)]
 
-    numCard=0
+    seeds_list=lines.pop(0).split(":")[1].strip().split(" ")
+    print(f"seedlist : {seeds_list}")
+
+
     for line in lines:
-        testPickCard(lines,numCard)
-        numCard+=1
+        if(len(line.strip())==0):
+            #parse next section
+            state+=1
+            ElmtConvTab[state]=ElemConverter(state)
+        else:
+            element =line.strip().split(" ")
+            if(len(element)==3):
+                #real element
+                ElmtConvTab[state].addElement(element[0],element[1],element[2])
 
-    print(nbTotalPickCard)
+    for seed in seeds_list:
+        location=testSeed(seed)
+        if(result==0):
+            result=location
+        else:
+            if(location<result):
+                result=location
+    print(result)
+
+
+
+
+
 
 
 
