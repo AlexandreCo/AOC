@@ -28,23 +28,34 @@ def spelledToNumberRevers(line):
 def removeLetter(line) :
     return re.sub("[a-z]", "", line)
 
-if __name__ == '__main__':
-    file = open('./1.txt', "r")
-    lines = file.readlines()
-    file.close()
-    sum = 0
+
+def run(part):
+    sum=0
     for rline in lines:
         # get first number
         line=rline.strip()
-        line=spelledToNumber(line)
+        if(part==2):
+            line=spelledToNumber(line)
         line = removeLetter(line)
         first=int(line[0])
-
         line=rline [::-1].strip()
-        line=spelledToNumberRevers(line)
+        if (debug):
+            print(line,end="")
+        if(part==2):
+            line=spelledToNumberRevers(line)
         line = removeLetter(line)
+        if (debug):
+            print(line)
         second=int(line[0])
 
         number = int(first) * 10 +int(second)
         sum += number
-    print(sum)
+    return sum
+
+if __name__ == '__main__':
+    debug=0
+    file = open('./1.txt', "r")
+    lines = file.readlines()
+    file.close()
+    print(f"Part 1 : {run(1)}")
+    print(f"Part 2 : {run(2)}")
