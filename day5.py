@@ -170,6 +170,16 @@ if __name__ == '__main__':
                 #real element
                 ElmtConvTab[state].addElement(element[0],element[1],element[2])
 
+
+    for seed in seeds_list:
+        location=testSeed(seed)
+        if(result==0):
+            result=location
+        else:
+            if(location<result):
+                result=location
+    print(f"Part 1 : {result}")
+
     result=0;
     save_num_seed=0
     save_seed=0
@@ -183,7 +193,7 @@ if __name__ == '__main__':
         if(debug):
             print(f"range : {seedRangeStart} {seedRangeLenght}")
         result = getMin(seedRangeStart, seedRangeLenght,result)
-    print(f"result : {result}")
+    print(f"Part 2 : {result}")
 
 
 
