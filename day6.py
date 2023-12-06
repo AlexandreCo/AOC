@@ -16,19 +16,26 @@ class Race :
     def win(self):
         self.nbwin+=1
 
-def getData(filename,race):
+def getData(filename,race,part):
     debug=0
     file = open(filename, "r")
     lines = file.readlines()
     file.close()
     line=lines.pop(0)
-    ptimes=line.strip().split(":")[1].strip().replace("  "," ").replace("  "," ").replace("  "," ").split(" ")
+    if(part==1):
+        ptimes=line.strip().split(":")[1].strip().replace("  "," ").replace("  "," ").replace("  "," ").split(" ")
+    else:
+        ptimes = line.strip().split(":")[1].strip().replace(" ","").split(" ")
     line=lines.pop(0)
-    records=line.strip().split(":")[1].strip().replace("  "," ").replace("  "," ").replace("  "," ").split(" ")
-
+    if(part==1):
+        records=line.strip().split(":")[1].strip().replace("  "," ").replace("  "," ").replace("  "," ").split(" ")
+    else:
+        records=line.strip().split(":")[1].strip().replace(" ","").split(" ")
+    if(debug):
+        print(ptimes,records)
     for  i in range(0,len(ptimes)):
         if(debug):
-            print(ptimes[i],records[i])
+            print(f"{ptimes[i]},{records[i]}")
         race.append(Race(int(ptimes[i]),int(records[i]),i))
     return i
 
@@ -40,14 +47,8 @@ def hold(remainingTime,ms):
 def test(remainingTime,speed):
     return remainingTime*speed
 
-if __name__ == '__main__':
-    debug = 0
-    races = []
-
+def start_races(races):
     result = 1
-    getData('./6.txt',races)
-
-
     for race in races:
         for ms in range(0,race.racetime):
             remainingTime,speed=hold(race.racetime,ms)
@@ -62,10 +63,16 @@ if __name__ == '__main__':
                 if(debug):
                     print("")
         result*=race.nbwin
+    return result
+if __name__ == '__main__':
+    debug = 0
+    races = []
+    getData('./6.txt',races,1)
+    print(f"Part 1 : {start_races(races)}")
 
-
-print(f"result : {result}")
-
+    races = []
+    getData('./6.txt',races,0)
+    print(f"Part 2 : {start_races(races)}")
 
 
 
