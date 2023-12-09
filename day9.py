@@ -19,7 +19,15 @@ def getData(filename,part,debug):
     file.close()
     datas=[]
     for line in lines:
-        datas.append(list(map(int, line.strip().split(" "))))
+        l=list(map(int, line.strip().split(" ")))
+        nl=[]
+
+        for e in reversed(l):
+            nl.append(e)
+        if(part==2):
+            datas.append(nl)
+        else:
+            datas.append(l)
 
     lineslist = []
     i = 0
