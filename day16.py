@@ -1,5 +1,6 @@
 import re
 import sys
+import cv2
 import numpy as np
 
 from day10 import eNonelvl
@@ -10,9 +11,9 @@ eNoticelvl = 2
 eInfolvl = 3
 eDbglvl = 4
 
-cGalaxy = '#'
-cOther = '.'
 
+cCaseWidth=50
+cCaseHeight=50
 
 class Case:
     def __init__(self, debug, name, x, y, num):
@@ -20,25 +21,31 @@ class Case:
         self.name = name
         self.x = x
         self.y = y
-        self.num = 0
+
+        self.dx = x*cCaseWidth
+        self.dy = y*cCaseHeight
+        self.num = num
 
         self.aN=False
         self.aS = False
         self.aE = False
         self.aW = False
-        if (name == cGalaxy):
-            self.num = num
 
-        if (isDebug(debug, eDbglvl)):
-            if (self.name == cGalaxy):
-                print(f"Case {num} : {x},{y}")
 
     def __lt__(self, other):
         return 1
 
-    def display(self):
-        if (self.name == cGalaxy):
-            return self.num
+    def display(self,img):
+        #if(self.name=='.'):
+            #cv2.rectangle(img, (self.dx, self.dy), (self.dx + cCaseWidth, self.dy + cCaseHeight), (0, 255, 0), 1)
+        if(self.name=='/'):
+            cv2.line(img, (self.dx, self.dy + cCaseHeight), (self.dx + cCaseWidth, self.dy), (0, 255, 0), 1)
+        if (self.name == '\\'):
+            cv2.line(img,(self.dx, self.dy), (self.dx + cCaseWidth, self.dy + cCaseHeight),(0, 255, 0), 1)
+        if (self.name == '|'):
+            cv2.rectangle(img, (self.dx+int(cCaseWidth/2)-2, self.dy), (self.dx + int(cCaseWidth/2)+2, self.dy + cCaseHeight), (0, 255, 0), 1)
+        if (self.name == '-'):
+            cv2.rectangle(img, (self.dx, self.dy+int(cCaseHeight/2)-2), (self.dx+cCaseWidth , self.dy + int(cCaseHeight/2)+2), (0, 255, 0), 1)
         return self.name
 
     def visited(self,dir):
@@ -173,12 +180,12 @@ class Ant:
     def getLeft(self,dir):
         if(dir=='n'):
             return 'w'
+        if(dir=='w'):
+            return 's'
         if(dir=='s'):
             return 'e'
         if(dir=='e'):
             return 'n'
-        if(dir=='w'):
-            return 's'
 
     def goRight(self,dir):
         if(dir=='n'):
@@ -191,16 +198,16 @@ class Ant:
             self.y+=1
             self.limit()
         if(dir=='w'):
-            self.y -= 1
+            self.y-=1
             self.limit()
         return self.getRight(dir)
     def getRight(self,dir):
         if(dir=='n'):
             return 'e'
-        if(dir=='s'):
-            return 'w'
         if(dir=='e'):
             return 's'
+        if(dir=='s'):
+            return 'w'
         if(dir=='w'):
             return 'n'
     def walk(self):
@@ -216,17 +223,24 @@ class Ant:
             self.dir=self.goRight(dir)
             return False, 'x'
         if(c.split(dir)):
-            self.dir=self.goRight(dir)
-            a=Ant(debug,self.x,self.y,self.xmax,self.ymax,dir,self.cases)
-            a.dir=a.goLeft(dir)
-            return True,a
+            sister=Ant(debug,self.x,self.y,self.xmax,self.ymax,self.dir,self.cases)
+            self.dir = self.getRight(dir)
+            sister.dir=sister.getLeft(dir)
+            return True,sister
 
         return False, 'x'
 
 
+    def display(self,img):
 
+        dx = self.x * cCaseWidth
+        dy = self.y * cCaseHeight
+
+        print(f"ant : {self.x} {self.y}, {dx} {dy}")
+        cv2.circle(img, (dx+int(cCaseWidth/2), dy+int(cCaseHeight/2)), int(cCaseHeight/5), (0, 0, 255), -1)
 
 class Univers:
+
 
     def __init__(self, debug, init_x_max, init_y_max):
 
@@ -237,6 +251,11 @@ class Univers:
         self.init_y_max = init_y_max
 
         self.ants = []
+
+        self.img = np.zeros((self.init_x_max*cCaseHeight, self.init_y_max*cCaseWidth, 3), np.uint8)
+
+        cv2.namedWindow('image originale')
+
 
     def addCase(self, name, x, y):
         debug = self.debug
@@ -249,18 +268,15 @@ class Univers:
         return self.x_max, self.y_max
 
     def display(self, debug):
+        self.img = np.zeros((self.init_x_max * cCaseHeight, self.init_y_max * cCaseWidth, 3), np.uint8)
         for y in range(0, self.init_y_max):
             for x in range(0, self.init_x_max):
-                if(self.isAnt(x,y)):
-                    if (debug >= eInfolvl):
-                        print('x', end="")
-                else:
-                    if (debug >= eInfolvl):
-                        S = self.cases[x][y].name
-                        print(f"{S}", end="")
-            if (debug >= eInfolvl):
-                print(f"")
-
+                self.cases[x][y].display(self.img)
+        for ant in self.ants:
+            ant.display(self.img)
+        cv2.imshow('image originale', self.img)
+        key = cv2.waitKey(1)
+        key = cv2.waitKey(0) & 0x0FF
     def getCase(self,x,y):
         return self.aCase[x][y];
 
@@ -282,7 +298,7 @@ class Univers:
                 if(split):
                     self.ants.append(a)
             self.display(eDbglvl)
-            print("")
+
 
 
 
