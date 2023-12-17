@@ -1,11 +1,7 @@
 import re
 import sys
 
-eNonelvl = 0
-eWarnlvl = 1
-eNoticelvl = 2
-eInfolvl = 3
-eDbglvl = 4
+
 
 
 class Pipe:
