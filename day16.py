@@ -347,7 +347,8 @@ class Univers:
                     self.ants.append(a)
                 if(ant.sleep==False):
                     nb_worker+=1
-            self.display(eDbglvl,False)
+            if(debug>eNonelvl):
+                self.display(eDbglvl,False)
 
 
 def isDebug(debug, lvl):
@@ -387,28 +388,70 @@ def getData(filename, part, debug):
     return univers
 
 
-def runpart(debug, part, univers):
+def runpart(debug, part):
     result = 0
-    univers.start(0,0,'e')
-    result=univers.countVisited(debug)
-    univers.display(debug, True)
+    for y in range(0,110):
+        univers = getData(filename, part, debug)
+        univers.start(0,y,'e')
+        ret=univers.countVisited(debug)
+        univers.display(debug, False)
+        if(part==1):
+            return ret
+
+        if(ret>result):
+            result=ret
+        if(debug>=eDbglvl):
+            print('ye',y,ret, result)
+
+        univers = getData(filename, part, debug)
+        univers.start(109, y, 'w')
+        ret = univers.countVisited(debug)
+        univers.display(debug, False)
+        if (debug >= eDbglvl):
+            print(ret)
+        if (ret > result):
+            result = ret
+        if (debug >= eDbglvl):
+            print('yw',y,ret, result)
+
+    for x in range(0,110):
+        univers = getData(filename, part, debug)
+        univers.start(x,0,'s')
+        ret=univers.countVisited(debug)
+        univers.display(debug, False)
+        if(part==1):
+            return ret
+        if (debug >= eDbglvl):
+            print(ret)
+        if(ret>result):
+            result=ret
+        if (debug >= eDbglvl):
+            print('xs',x,ret, result)
+        univers = getData(filename, part, debug)
+        univers.start(x, 109, 'n')
+        ret = univers.countVisited(debug)
+        univers.display(debug, False)
+        if (debug >= eDbglvl):
+            print(ret)
+        if (ret > result):
+            result = ret
+        if (debug >= eDbglvl):
+            print('xn',x,ret, result)
     return result
 
 
 def display(debug):
-    univers.display(debug,False)
+    if(debug>eNonelvl):
+        univers.display(debug,False)
 
 
 if __name__ == '__main__':
     debug = eNonelvl
     filename = './16.txt'
     part = 1
-    univers = getData(filename, part, debug)
 
-    display(debug)
-
-    print(f"Part 1 : {runpart(debug, part, univers)}")
-    # print(f"Part 2 : {runpart(debug,part,univers)}")
+    print(f"Part 1 : {runpart(debug,1)}")
+    print(f"Part 2 : {runpart(debug,2)}")
 
 
 
