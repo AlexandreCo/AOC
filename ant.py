@@ -53,7 +53,7 @@ class Ant:
             y=self.y
 
         x, y, limit = self.limitxy(x, y)
-        return int(self.cases[x][y].name)
+        return x, y, int(self.cases[x][y].name),limit
 
     def goForward(self,dir):
         if(dir=='n'):

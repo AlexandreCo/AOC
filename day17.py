@@ -1,26 +1,110 @@
 import re
 import sys
-import cv2
+
 import numpy as np
 from ant import *
 from case import *
 from debug import *
 from univers import *
+#pip install opencv-python
+import cv2
+
+class Path:
+    def __init__(self, x, y,dir,heatloss):
+        self.x=x
+        self.y=y
+        self.dir=dir
+        self.heatloss=heatloss
 
 class Ant17(Ant):
-    def __init__(self, debug, x, y,xmax,ymax,dir,cases):
+    def __init__(self, debug, x, y,xmax,ymax,dir,cases,heatloss,aPath):
         Ant.__init__(self, debug, x, y,xmax,ymax,dir,cases)
+        self.heatloss=heatloss
+        self.aPath = aPath
 
+    def min(self,c1,c2,c3):
+        ret=0
+        if(c1<c2):
+            if (c1 < c3):
+                ret = 1
+            else:
+                ret = 3
+        else:
+            if (c2 < c3):
+                ret = 2
+            else:
+                ret = 3
+        return ret
 
 
     def walk(self):
+        p=Path(self.x, self.y, self.dir, self.heatloss)
         if (self.sleep == True):
             return False, 'x'
-        c1=self.test(self.dir,1)
-        c2=self.test(self.dir,2)
-        c3=self.test(self.dir,3)
-        print(c1,c2,c3)
-        return False, 'x'
+        if(self.cases[self.x][self.y].isDirOk(self.dir)==False):
+            #Mark current as visited
+            self.cases[self.x][self.y].visited(self.dir)
+            if(self.x==self.xmax):
+                if (self.y == self.ymax):
+                    print('Path found',self.heatloss)
+                    self.sleep=True
+                    for i in range(0,len(self.aPath)):
+                        print(self.aPath[i].x,self.aPath[i].y,self.aPath[i].dir,self.aPath[i].heatloss)
+                    return False, 'x'
+        else:
+            self.sleep=True
+            return False, 'x'
+
+        #get case that minimize heat loss
+        x,y,c1,limit =self.test(self.dir,1)
+        if(limit):
+            #no way
+            self.sleep=True
+            return False, 'x'
+        else:
+            x,y,c2,limit =self.test(self.dir,2)
+            if(limit):
+                #just one case before the limit
+                step=1
+                self.heatloss+=int(c1)
+            else:
+                x,y,c3,limit =self.test(self.dir,3)
+                if(limit):
+                    # just two case before limit (test 1 and 2)
+                    step=self.min(c1,c2,1000)
+                    if(step==1):
+                        self.heatloss += int(c1)
+                    else:
+                        self.heatloss += int(c1)
+                        self.heatloss += int(c2)
+                else:
+                    # a least three case limit (test 1, 2 and 3)
+                    step = self.min(c1, c2, c3)
+                    if(step==1):
+                        self.heatloss += int(c1)
+                    else:
+                        if (step == 2):
+                            self.heatloss += int(c1)
+                            self.heatloss += int(c2)
+                        else:
+                            self.heatloss += int(c1)
+                            self.heatloss += int(c2)
+                            self.heatloss += int(c3)
+
+
+            self.aPath.append(p)
+
+
+        #Walk on this case
+        self.x, self.y,name,limit=self.test(self.dir,step)
+
+        #go left
+        sister = Ant17(self.debug, self.x, self.y, self.xmax, self.ymax, self.dir, self.cases,self.heatloss,self.aPath)
+
+        self.dir=self.getLeft(self.dir)
+        sister.dir = sister.getRight(sister.dir)
+        return True, sister
+
 
 
 class Univers17(Univers):
@@ -28,7 +112,7 @@ class Univers17(Univers):
     def __init__(self, debug, init_x_max, init_y_max,cases ):
         Univers.__init__(self,debug,init_x_max, init_y_max ,cases )
         self.img = np.zeros((self.init_x_max*cCaseHeight, self.init_y_max*cCaseWidth, 3), np.uint8)
-        cv2.namedWindow('visu')
+        #cv2.namedWindow('visu')
 
     def display(self, cv2, img, cCaseWidth, cCaseHeight,stop):
         if (isDebug(self.debug, eVisulvl)):
@@ -40,8 +124,16 @@ class Univers17(Univers):
                 else:
                     c=self.cases[x][y].name
                     print(f"{c: 2d}",end="")
-            print(f"")
+            if (isDebug(self.debug, eVisulvl)==False):
+                print(f"")
 
+        for ant in self.ants:
+            ant.display(cv2, self.img, cCaseWidth, cCaseHeight)
+        cv2.imshow('img', self.img)
+        if (stop == False):
+            key = cv2.waitKey(1)
+        else:
+            key = cv2.waitKey(0) & 0x0FF
     def print(self):
         print(self.init_x_max,self.init_y_max)
         for y in range(0, self.init_y_max):
@@ -55,22 +147,42 @@ class Univers17(Univers):
         self.cases[x][y] = Case17(debug,name,x,y,self.nb_cases)
         self.nb_cases += 1
 
+    def getLowest(self):
+        heatloss = -1
+        ret = False
+        lowest=None
+        for ant in self.ants:
+            if(ant.sleep==False):
+                hl=ant.heatloss
+                if(heatloss==-1):
+                    heatloss=hl
+                    lowest=ant
+                    ret=True
+                else:
+                    if(hl<heatloss):
+                        heatloss = hl
+                        lowest = ant
+                        ret = True
+
+        return ret,lowest
     def start(self,x,y,dir):
-        a=Ant17(self.debug,x, y, self.init_x_max-1, self.init_y_max-1, dir, self.cases)
+        a=Ant17(self.debug,x, y, self.init_x_max-1, self.init_y_max-1, dir, self.cases,0,[])
         self.ants.append(a)
 
         nb_worker = -1
-        while nb_worker!=0:
+        while True:
             nb_worker=0
-            for ant in self.ants:
+            ret,ant=self.getLowest()
+            if(ret==True):
                 split,a = ant.walk()
                 if(split):
                     self.ants.append(a)
-                if(ant.sleep==False):
-                    nb_worker+=1
-            if(debug>eNonelvl):
-                #self.display(eDbglvl,False,cCaseWidth, cCaseHeight,False)
-                self.print()
+                if(debug>eNonelvl):
+                    #self.print()
+                    self.display(cv2,self.img,cCaseWidth, cCaseHeight,False)
+            else:
+                break
+
 
 class Case17(Case):
     def __init__(self, debug, name, x, y, num):
@@ -79,19 +191,11 @@ class Case17(Case):
     def display(self, cv2, img, cCaseWidth, cCaseHeight):
         dx = self.x * cCaseWidth
         dy = self.y * cCaseHeight
+        #print(self.x,self.y,dx,dy)
 
-        if (self.count):
-            cv2.rectangle(img, (dx, dy), (dx + cCaseWidth, dy + cCaseHeight), (0x69, 0x69, 0x69), -1)
-        if (self.name == '/'):
-            cv2.line(img, (dx, dy + cCaseHeight), (dx + cCaseWidth, dy), (0, 255, 0), 1)
-        if (self.name == '\\'):
-            cv2.line(img, (dx, dy), (dx + cCaseWidth, dy + cCaseHeight), (0, 255, 0), 1)
-        if (self.name == '|'):
-            cv2.rectangle(img, (dx + int(cCaseWidth / 2) - 2, dy),
-                          (dx + int(cCaseWidth / 2) + 2, dy + cCaseHeight), (0, 255, 0), 1)
-        if (self.name == '-'):
-            cv2.rectangle(img, (dx, dy + int(cCaseHeight / 2) - 2),
-                          (dx + cCaseWidth, dy + int(cCaseHeight / 2) + 2), (0, 255, 0), 1)
+        #print(int(self.name)*25)
+        cv2.rectangle(img, (dx, dy), (dx + cCaseWidth, dy + cCaseHeight), (int(self.name)*25, 0, 0), -1)
+
         return self.name
 
     def getName(self):
@@ -115,13 +219,13 @@ def getData(filename, part, debug):
     file.close()
 
     j = 0
-    y_max = 0
+    y_max = 1
     for line in lines:
         x_max = len(line)
         y_max += 1
 
 
-    univers = Univers17(debug, x_max, y_max,np.array([[0 for x in range(y_max + 1)] for y in range(x_max + 1)], dtype=Case17))
+    univers = Univers17(debug, x_max-1, y_max-1,np.array([[0 for x in range(y_max + 1)] for y in range(x_max + 1)], dtype=Case17))
 
     y = 0
     for line in lines:
@@ -157,7 +261,7 @@ if __name__ == '__main__':
     part = 1
 
     print(f"Part 1 : {runpart(debug,1)}")
-    print(f"Part 2 : {runpart(debug,2)}")
+    #print(f"Part 2 : {runpart(debug,2)}")
 
 
 
