@@ -16,21 +16,44 @@ class Ant:
         if isDebug(debug, eDbglvl):
             print(f"ant : {x} {y}")
 
+    def limitxy(self,x,y):
+        limit=False
+        if(y>self.ymax):
+            y=self.ymax
+            limit = True
+        if(x>self.xmax):
+            x=self.xmax
+            limit = True
+        if(x<self.xmin):
+            x=self.xmin
+            limit = True
+        if(y<self.ymin):
+            y=self.ymin
+            limit = True
+        return x,y,limit
+
     def limit(self):
-        if(self.y>self.ymax):
-            self.y=self.ymax
-            self.sleep = True
-        if(self.x>self.xmax):
-            self.x=self.xmax
-            self.sleep = True
-        if(self.x<self.xmin):
-            self.x=self.xmin
-            self.sleep = True
-        if(self.y<self.ymin):
-            self.y=self.ymin
-            self.sleep = True
+        self.x,self.y,self.sleep=self.limitxy(self.x,self.y)
 
+    def test(self,dir,nb):
+        if(dir=='s'):
+            x=self.x
+            y=self.y+nb
 
+        if(dir=='n'):
+            x=self.x
+            y=self.y-nb
+
+        if(dir=='e'):
+            x=self.x+nb
+            y=self.y
+
+        if(dir=='w'):
+            x=self.x-nb
+            y=self.y
+
+        x, y, limit = self.limitxy(x, y)
+        return int(self.cases[x][y].name)
 
     def goForward(self,dir):
         if(dir=='n'):

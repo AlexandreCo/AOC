@@ -7,6 +7,22 @@ from case import *
 from debug import *
 from univers import *
 
+class Ant17(Ant):
+    def __init__(self, debug, x, y,xmax,ymax,dir,cases):
+        Ant.__init__(self, debug, x, y,xmax,ymax,dir,cases)
+
+
+
+    def walk(self):
+        if (self.sleep == True):
+            return False, 'x'
+        c1=self.test(self.dir,1)
+        c2=self.test(self.dir,2)
+        c3=self.test(self.dir,3)
+        print(c1,c2,c3)
+        return False, 'x'
+
+
 class Univers17(Univers):
 
     def __init__(self, debug, init_x_max, init_y_max,cases ):
@@ -39,6 +55,22 @@ class Univers17(Univers):
         self.cases[x][y] = Case17(debug,name,x,y,self.nb_cases)
         self.nb_cases += 1
 
+    def start(self,x,y,dir):
+        a=Ant17(self.debug,x, y, self.init_x_max-1, self.init_y_max-1, dir, self.cases)
+        self.ants.append(a)
+
+        nb_worker = -1
+        while nb_worker!=0:
+            nb_worker=0
+            for ant in self.ants:
+                split,a = ant.walk()
+                if(split):
+                    self.ants.append(a)
+                if(ant.sleep==False):
+                    nb_worker+=1
+            if(debug>eNonelvl):
+                #self.display(eDbglvl,False,cCaseWidth, cCaseHeight,False)
+                self.print()
 
 class Case17(Case):
     def __init__(self, debug, name, x, y, num):
@@ -109,6 +141,8 @@ def getData(filename, part, debug):
 def runpart(debug, part):
     result = 0
     univers = getData(filename, part, debug)
+
+    univers.start(0,0,'e')
     return result
 
 
