@@ -34,4 +34,20 @@ class Univers:
         return self.aCase[x][y];
 
 
+    def limitXY(self,x,y):
+        limit=False;
+        if(x>self.init_x_max):
+            x=self.init_x_max
+            limit=True
+        if (y > self.init_y_max):
+            y = self.init_y_max
+            limit = True
+        if (x < 0 ):
+            x = 0
+            limit = True
+        if (y < 0 ):
+            y = 0
+            limit = True
+        return limit,x,y
+
 

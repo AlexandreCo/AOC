@@ -9,7 +9,11 @@ from univers import *
 #pip install opencv-python
 import cv2
 
-
+class Path:
+    def __init__(self,x,y,heatloss):
+        self.x=x
+        self.y=y
+        self.heatloss=heatloss
 
 class Univers17(Univers):
 
@@ -33,67 +37,134 @@ class Univers17(Univers):
         else:
             key = cv2.waitKey(0) & 0x0FF
 
+    def displayPath(self,x,y,stop):
+        self.displayU(False)
+        for path in self.cases[x][y].aPath:
+            self.cases[path.x][path.y].displayGrey(cv2, self.img)
+        cv2.imshow('img', self.img)
+        if (stop == False):
+            key = cv2.waitKey(1)
+        else:
+            key = cv2.waitKey(0) & 0x0FF
+
+
     def addCase(self, heatloss, x, y):
         debug = self.debug
         self.cases[x][y] = Case17(debug,heatloss,x,y,self.nb_cases)
         self.nb_cases += 1
 
-    def addWorkingCase(self,aCase,new, x, y):
-        print(x,y)
+    def addWorkingCase(self,aCases,new, x, y,dir):
+        #print(x,y)
         limit, x, y = self.limitXY(x, y)
         if (limit == False):
             neighbor=self.cases[x][y]
-            h = new.totalHeatLoss + new.heatloss
+            h = new.totalHeatLoss + neighbor.heatloss
             th = neighbor.totalHeatLoss
             if (th == -1):
+                if(new.dir==dir):
+                    if(new.countForward>=2):
+                        return
+                    else:
+                        neighbor.countForward = new.countForward + 1
+                else:
+                    neighbor.countForward = 0
+                neighbor.dir=dir
                 th = h
+                p=new.aPath.copy()
+                p.append(Path(new.x,new.y,th))
+                neighbor.aPath=p
                 neighbor.totalHeatLoss=th
-                aCase.append(neighbor)
+                aCases.append(neighbor)
             else:
-                if (h < th):
+                if (th == -1):
+                    if (new.dir == dir):
+                        if (new.countForward >= 2):
+                            return
+                        else:
+                            neighbor.countForward = new.countForward + 1
+                    else:
+                        neighbor.countForward = 0
+                    neighbor.dir = dir
                     th = h
+                    p = new.aPath.copy()
+                    p.append(Path(new.x, new.y, th))
+                    neighbor.aPath = p
                     neighbor.totalHeatLoss = th
-                    aCase.append(neighbor)
+                    aCases.append(neighbor)
 
-    def start(self,x,y):
-        aCase=[]
-        self.cases[x][y].totalHeatLoss=0
-        aCase.append(self.cases[x][y])
-        self.displayU(True)
-        while len(aCase):
-            new=aCase.pop(0)
-            x,y=new.getEast()
-            self.addWorkingCase(aCase,new,x,y)
-            x,y=new.getSouth()
-            self.addWorkingCase(aCase,new,x,y)
-            x,y=new.getWest()
-            self.addWorkingCase(aCase,new,x,y)
+    def getLowest(self):
+        aC=self.aCases
+        self.aCases=[]
+        cMin = aC.pop(0)
+        for case in aC:
+            if(cMin.totalHeatLoss > case.totalHeatLoss):
+                # smaller
+                self.aCases.append(cMin)
+                cMin=case
+            else:
+                self.aCases.append(case)
+        return cMin
+
+
+
+
+    def start(self,x,y,dir):
+        self.aCases=[]
+        self.cases[x][y].totalHeatLoss=self.cases[x][y].heatloss
+        self.cases[x][y].dir=dir
+        self.cases[x][y].countForward=1
+        self.aCases.append(self.cases[x][y])
+
+        self.displayU(False)
+        while len(self.aCases):
+            new=self.getLowest()
             x,y=new.getNorth()
-            self.addWorkingCase(aCase,new,x,y)
+            self.addWorkingCase(self.aCases,new,x,y,'n')
+            x,y=new.getWest()
+            self.addWorkingCase(self.aCases,new,x,y,'w')
+            x,y=new.getEast()
+            self.addWorkingCase(self.aCases,new,x,y,'e')
+            x,y=new.getSouth()
+            self.addWorkingCase(self.aCases,new,x,y,'s')
+            self.displayU(False)
+            #self.displayPath(new.x,new.y,False)
 
-        self.displayU(True)
+        x=self.init_x_max
+        y=self.init_y_max
+        self.displayPath(x,y, True)
 
+
+        return self.cases[x][y].totalHeatLoss
 class Case17(Case):
     def __init__(self, debug, heatloss, x, y, num):
         Case.__init__(self, debug, heatloss, x, y, num,cCaseWidth,cCaseHeight)
         self.heatloss=int(heatloss)
         self.totalHeatLoss=-1
+        self.aPath = []
+        self.countForward=0
+        self.dir='x';
 
     def display(self, cv2, img):
         color=(int(self.heatloss) * 25, 0, 0)
         self.cv2DisplayBack(cv2, img,color)
-        self.cv2DisplayCenter(cv2, img,str(self.totalHeatLoss))
-        self.cv2DisplayNorth(cv2, img,str(self.heatloss))
-        self.cv2DisplaySouth(cv2, img,str(self.heatloss))
-        self.cv2DisplayEast(cv2, img,str(self.heatloss))
-        self.cv2DisplayWest(cv2, img, str(self.heatloss))
+        if(self.cCaseWidth>35):
+            self.cv2DisplayCenter(cv2, img,str(self.totalHeatLoss))
+        if (self.cCaseWidth >= 70):
+            self.cv2DisplayNorth(cv2, img,str(self.heatloss))
+            self.cv2DisplaySouth(cv2, img,str(self.heatloss))
+            self.cv2DisplayEast(cv2, img,str(self.heatloss))
+            self.cv2DisplayWest(cv2, img, str(self.heatloss))
 
+    def displayGrey(self, cv2, img):
+        color=(0xD9, 0xD9, 0xD9)
+        self.cv2DisplayBack(cv2, img,color)
+        if(self.cCaseWidth>=70):
+            self.cv2DisplayNorth(cv2, img,str(self.totalHeatLoss))
+            self.cv2DisplaySouth(cv2, img,str(self.heatloss))
 
-
-
-coef=8
-cCaseWidth=9*coef
-cCaseHeight=9*coef
+coef=10
+cCaseWidth=7*coef
+cCaseHeight=7*coef
 
 
 def isDebug(debug, lvl):
@@ -115,17 +186,12 @@ def getData(filename, part, debug):
     lines = file.readlines()
     file.close()
 
-
     j = 0
     x_max,y_max=getUniversSize(lines)
-
-    print(x_max,y_max)
-
     univers = Univers17(debug,
                         x_max-1, y_max-1,
                         np.array([[0 for x in range(y_max + 1)] for y in range(x_max + 1)], dtype=Case17),
                         cCaseWidth,cCaseHeight)
-
 
     y = 0
     for line in lines:
@@ -144,8 +210,8 @@ def getData(filename, part, debug):
 def runpart(debug, part):
     result = 0
     univers = getData(filename, part, debug)
-
-    univers.start(1,0)
+    univers.displayU(True)
+    result=univers.start(1,0,'e')
     return result
 
 
