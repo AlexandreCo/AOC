@@ -1,4 +1,9 @@
 
+cCaseNorth='n'
+cCaseEast='e'
+cCaseSouth='s'
+cCaseWest='w'
+cCaseMaxDir=4
 class Case:
     def __init__(self, debug, name, x, y, num,cCaseWidth,cCaseHeight):
         self.debug = debug
@@ -21,68 +26,68 @@ class Case:
         return 1
 
     def isDirOk(self,dir):
-        if(dir=='n'):
+        if(dir==cCaseNorth):
             return self.aN
-        elif (dir=='s'):
+        elif (dir==cCaseSouth):
             return self.aS
-        elif (dir=='e'):
+        elif (dir==cCaseEast):
             return self.aE
-        elif (dir=='w'):
+        elif (dir==cCaseWest):
             return self.aW
         return True
 
     def visited(self,dir):
         self.count+=1
-        if(dir=='n'):
+        if(dir==cCaseNorth):
             self.aN=True
-        if(dir=='s'):
+        if(dir==cCaseSouth):
             self.aS=True
-        if(dir=='e'):
+        if(dir==cCaseEast):
             self.aE=True
-        if(dir=='w'):
+        if(dir==cCaseWest):
             self.aW=True
     def goForward(self,dir):
         self.visited(dir)
         if(self.name=='.'):
             return True
         if(self.name=='|'):
-            if (dir == 'n'):
+            if (dir == cCaseNorth):
                 return True
-            if (dir == 's'):
+            if (dir == cCaseSouth):
                 return True
 
         if(self.name=='-'):
-            if (dir == 'w'):
+            if (dir == cCaseWest):
                 return True
-            if (dir == 'e'):
+            if (dir == cCaseEast):
                 return True
         return False
 
     def goLeft(self,dir):
         self.visited(dir)
         if (self.name == '/'):
-            if (dir == 'e'):
+            if (dir == cCaseEast):
                 return True
-            if (dir == 'w'):
+            if (dir == cCaseWest):
                 return True
         if (self.name == '\\'):
-            if (dir == 'n'):
+            if (dir == cCaseNorth):
                 return True
-            if (dir == 's'):
+            if (dir == cCaseSouth):
                 return True
         return False
 
     def goRight(self,dir):
         self.visited(dir)
         if (self.name == '\\'):
-            if (dir == 'e'):
+            if (dir == cCaseEast):
                 return True
-            if (dir == 'w'):
+            if (dir == cCaseWest):
                 return True
         if(self.name == '/'):
-            if (dir == 'n'):
+            if (dir == cCaseNorth):
                 return True
-            if (dir == 's'):
+            if (dir == cCaseSouth):
                 return True
 
         return False
@@ -90,14 +95,14 @@ class Case:
     def split(self,dir):
         self.visited(dir)
         if (self.name == '|'):
-            if (dir == 'e'):
+            if (dir == cCaseEast):
                 return True
-            if (dir == 'w'):
+            if (dir == cCaseWest):
                 return True
         if (self.name == '-'):
-            if (dir == 'n'):
+            if (dir == cCaseNorth):
                 return True
-            if (dir == 's'):
+            if (dir == cCaseSouth):
                 return True
         return False
 

@@ -18,7 +18,6 @@ class Univers:
             print(f"univers size : {self.x_max} {self.y_max}")
         return self.x_max, self.y_max
 
-
     def countVisited(self, debug):
         ret = 0
         for y in range(0, self.init_y_max):
