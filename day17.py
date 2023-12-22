@@ -12,18 +12,22 @@ from univers import *
 import cv2
 
 class Path:
-    def __init__(self,x,y,heatloss,dir):
+    def __init__(self,x,y,z,d,heatloss):
         self.x=x
         self.y=y
+        self.z=z
+        self.d = d
         self.heatloss=heatloss
-        self.dir=dir
+
 
 class Univers17(Univers):
 
     def __init__(self, debug, init_x_max, init_y_max,cases,cCaseWidth,cCaseHeight):
         Univers.__init__(self,debug,init_x_max, init_y_max ,cases )
-        self.casesNS = cases.copy()
-        self.casesEW = cases.copy()
+        self.init_z_max=4
+        self.init_d_max=2
+
+
         #self.img = np.zeros((self.init_x_max*cCaseHeight, self.init_y_max*cCaseWidth, 3), np.uint8)
         self.img = np.zeros((self.init_x_max * cCaseHeight, self.init_y_max * cCaseWidth, 3), np.uint8)
         self.stepByStep=False
@@ -36,18 +40,18 @@ class Univers17(Univers):
         self.img = np.zeros((my * cCaseWidth, mx * cCaseHeight,  3), np.uint8)
         for y in range(0, my):
             for x in range(0, mx):
-                self.casesNS[x][y].display(cv2,self.img)
+                self.cases[x][y][0][0].display(cv2,self.img)
         cv2.imshow('img', self.img)
         if (stop == False):
             key = cv2.waitKey(1)
         else:
             key = cv2.waitKey(0) & 0x0FF
 
-    def displayPath(self,x,y,stop,dir):
+    def displayPath(self,x,y,stop,dir,z):
         self.displayU(False)
-        case=self.getCase(x,y,dir)
+        case=self.getCase(x,y,z,dir)
         for path in case.aPath:
-            c=self.getCase(path.x,path.y,dir)
+            c=self.getCase(path.x,path.y,path.z,path.dir)
             c.displayGrey(cv2, self.img)
         case.displayGrey(cv2, self.img)
         cv2.imshow('img', self.img)
@@ -85,69 +89,75 @@ class Univers17(Univers):
         print("")
     def addCase(self, heatloss, x, y):
         debug = self.debug
-        self.casesNS[x][y] = Case17(debug,heatloss,x,y,self.nb_cases)
-        self.casesNS[x][y].nativedir=cCaseNorth
-        self.casesEW[x][y] = Case17(debug, heatloss, x, y, self.nb_cases)
-        self.casesEW[x][y].nativedir=cCaseEast
+        for z in range(0,4):
+            for d in range(0, 4):
+                self.cases[x][y][z][d] = Case17(debug,heatloss,x,y,z,d,self.nb_cases)
 
         self.nb_cases += 1
 
-    def setTotalHeatLoss(self,x,y,totalHeatLoss,dir):
-        self.casesNS[x][y].totalHeatLoss = totalHeatLoss
-        self.casesEW[x][y].totalHeatLoss = totalHeatLoss
-        # if(dir==cCaseNorth):
-        #     self.casesNS[x][y].totalHeatLoss=totalHeatLoss
-        # if (dir == cCaseSouth):
-        #         self.casesNS[x][y].totalHeatLoss = totalHeatLoss
-        # if(dir==cCaseEast):
-        #     self.casesEW[x][y].totalHeatLoss=totalHeatLoss
-        # if (dir == cCaseWest):
-        #     self.casesEW[x][y].totalHeatLoss = totalHeatLoss
-    def addWorkingCase(self,aCases,new, x, y,dir,max_count):
+    def setTotalHeatLoss(self,x,y,z,d,totalHeatLoss):
+        self.cases[x][y][z][d].totalHeatLoss = totalHeatLoss
 
 
-        size = len(new.aPath)
-        #for i in range(0, size):
-        #    print(new.aPath[-i].dir, end="")
-        #print("")
-        ret=True
-        if (size >= max_count):
-            #print(f"{dir}: ", end="")
-            for i in range(1, max_count + 1):
-                d=new.aPath[-i].dir
-                #print(d, end="")
-                if (d != dir):
-                    ret=False
-            #print(f"")
-            #print(f"{i} {dir}")
-            if (ret):
-                #print("no way")
-                return
+    def getNbF(self,case):
 
-        limit, x, y = self.limitXY(x, y)
+        if(len(case.aPath)==0):
+            return 0
+        if(len(case.aPath)==1):
+            return 0
+        if(len(case.aPath)==2):
+            if(case.aPath[-1]==case.aPath[-2]):
+                return 1
+            else:
+                return 0
+
+        if(len(case.aPath)==3):
+            if (case.aPath[-1] == case.aPath[-2]):
+                if (case.aPath[-2] == case.aPath[-3]):
+                    return 2
+                else:
+                    return 1
+            else:
+                return 0
+
+        if (case.aPath[-1] == case.aPath[-2]):
+            if (case.aPath[-2] == case.aPath[-3]):
+                if (case.aPath[-3] == case.aPath[-4]):
+                    return 3
+                else:
+                    return 2
+            else:
+                return 1
+        else:
+            return 0
+
+        return 0
+
+    def limitXYZ(self,x,y,z):
+        limit,x,y=Univers.limitXY(self,x,y)
+        if (z > self.init_z_max):
+            z = self.init_z_max
+            limit = True
+        if (z < 0 ):
+            z = 0
+            limit = True
+        return limit,x,y,z
+
+    def addWorkingCase(self,aCases,new, x, y, z, d):
+
+        limit, x, y , z = self.limitXYZ(x, y , z)
         if (limit == False):
-            neighbor=self.getCase(x,y,dir)
+            neighbor=self.getCase(x,y,z,d)
             h = new.totalHeatLoss + neighbor.heatloss
             th = neighbor.totalHeatLoss
-
             if (th > h):
-                #neighbor.dir = dir
                 th = h
                 p = new.aPath.copy()
-                p.append(Path(new.x,new.y,th,dir))
+                p.append(Path(new.x,new.y,new.z,dir,th))
                 neighbor.aPath = p
-                self.setTotalHeatLoss(neighbor.x,neighbor.y,th,neighbor.nativedir)
+                self.setTotalHeatLoss(neighbor.x,neighbor.y,neighbor.z,neighbor.d,th)
                 aCases.append(neighbor)
 
-                # print(" : {0} {1} ".format(new.nativedir,
-                #                                     chr(97+new.num))
-                #                                     ,end="")
-                # print(" : {0} {1}({2}) [".format(neighbor.nativedir, chr(97+neighbor.num),neighbor.totalHeatLoss)
-                #
-                #                                     ,end="")
-                # for p in neighbor.aPath:
-                #     print(p.dir,end="")
-                # print("")
 
     def getLowest(self):
         aC=self.aCases
@@ -163,62 +173,71 @@ class Univers17(Univers):
         return cMin
 
 
-    def getCase(self,x,y,dir):
-        if (dir==cCaseNorth):
-            return self.casesNS[x][y]
-        if (dir==cCaseSouth):
-            return self.casesNS[x][y]
-        if (dir == cCaseEast):
-            return self.casesEW[x][y]
-        if (dir == cCaseWest):
-            return self.casesEW[x][y]
+    def getCase(self,x,y,z,d):
+        print("GC : ",x,y,z,d)
+        if(d==4):
+            print("error")
+        return self.cases[x][y][z][d]
 
-    def start(self,x,y,dir,max_count):
+
+    def start(self,x,y,z,d,max_forward):
         self.aCases=[]
+        print("S=>", x, y, z, d)
+        case=self.getCase(x,y,z,d)
 
-        x=1
-        y=0
-        case=self.getCase(x,y,dir)
-        case.aPath.append(Path(0, 0, 0, cCaseEast))
+        case.aPath.append(Path(x, y, z, d,0))
 
-        self.setTotalHeatLoss(x, y, case.heatloss,cCaseEast)
+        self.setTotalHeatLoss(x, y, z, d, 0)
+
         #case.dir=dir
         self.aCases.append(case)
 
         while len(self.aCases):
             new=self.getLowest()
-            #print(f"Get {new.x},{new.y}: {new.totalHeatLoss}")
-            x,y=new.getNorth()
-            self.addWorkingCase(self.aCases,new,x,y,cCaseNorth,max_count)
-            x,y=new.getWest()
-            self.addWorkingCase(self.aCases,new,x,y,cCaseWest,max_count)
-            x,y=new.getEast()
-            self.addWorkingCase(self.aCases,new,x,y,cCaseEast,max_count)
-            x,y=new.getSouth()
-            self.addWorkingCase(self.aCases,new,x,y,cCaseSouth,max_count)
-            #self.printAll()
-            #print("Queues:")
-            #for case in self.aCases:
-            #    print(f"{case.x},{case.y}: {case.totalHeatLoss}")
-            #self.displayPath(new.x, new.y, True, new.nativedir)
+            print("N=>",new.x,new.y,new.z,new.d)
+            x,y,z,d=new.getForward()
+
+            print("F=>",x, y, z, d)
+            self.addWorkingCase(self.aCases,new,x,y,z,d)
+
+            x,y,z,d=new.getRight()
+            print("R=>", x, y, z, d)
+            self.addWorkingCase(self.aCases,new,x,y,z,d)
+
+            x,y,z,d=new.getLeft()
+            print("L=>", x, y, z, d)
+            self.addWorkingCase(self.aCases,new,x,y,z,d)
+            print("")
 
 
         xfinal=self.init_x_max
         yfinal=self.init_y_max
-
-        print("n:",self.getCase(xfinal, yfinal, cCaseNorth).totalHeatLoss)
-        print("e:",self.getCase(xfinal, yfinal, cCaseEast).totalHeatLoss)
-        self.displayPath(xfinal, yfinal, True, cCaseEast)
-        self.displayPath(xfinal, yfinal, True, cCaseNorth)
+        for z in range (0,4):
+            print("n:",self.getCase(xfinal, yfinal, z, cCaseNorth).totalHeatLoss)
+            print("e:",self.getCase(xfinal, yfinal,  z, cCaseEast).totalHeatLoss)
+            self.displayPath(xfinal, yfinal, True, cCaseEast,z)
+        #self.displayPath(xfinal, yfinal, True, cCaseNorth)
         return 0
 class Case17(Case):
-    def __init__(self, debug, heatloss, x, y, num):
+    def __init__(self, debug, heatloss, x, y, z,d,num):
         Case.__init__(self, debug, heatloss, x, y, num,cCaseWidth,cCaseHeight)
         self.heatloss=int(heatloss)
         self.totalHeatLoss=10000
         self.aPath = []
-        self.nativedir='x'
-
+        self.z=z
+        self.d = d
+        if(d==cCaseNorth):
+            self.dx = 0
+            self.dy = -1
+        if(d==cCaseEast):
+            self.dx = 1
+            self.dy = 0
+        if(d==cCaseSouth):
+            self.dx = 0
+            self.dy = 1
+        if(d==cCaseWest):
+            self.dx = -1
+            self.dy = -0
     def display(self, cv2, img):
         color=(255-int(self.heatloss)*25, 0, 0)
         self.cv2DisplayBack(cv2, img,color)
@@ -241,9 +260,41 @@ class Case17(Case):
     def getTotalHeatLoss(self,dir):
         self.totalHeatLoss
 
+    def getForward(self):
+        x=self.x+self.dx
+        y=self.y+self.dy
+        z=self.z+1
+        d=self.d
+        return x,y,z,d
+
+    def getBackward(self):
+        x = self.x - self.dx
+        y = self.y - self.dy
+        z = self.z + 1
+        d = self.d
+        return x, y, z, d
+
+    def getRight(self):
+        x=self.x+self.dx
+        y=self.y+self.dy
+        z=0
+        d=self.d+1
+        if(d==4):
+            d=0
+        return x, y, z, d
+
+    def getLeft(self):
+        x=self.x+self.dx
+        y=self.y+self.dy
+        z=0
+        d=self.d-1
+        if(d==-1):
+            d=3
+        return x, y, z, d
 
 
-coef=1
+
+coef=10
 cCaseWidth=7*coef
 cCaseHeight=7*coef
 
@@ -262,7 +313,7 @@ def getUniversSize(lines):
         y_max += 1
     return x_max,y_max
 
-def getData(filename, part, debug):
+def getData(filename, part, debug,max_forward):
     file = open(filename, "r")
     lines = file.readlines()
     file.close()
@@ -271,7 +322,7 @@ def getData(filename, part, debug):
     x_max,y_max=getUniversSize(lines)
     univers = Univers17(debug,
                         x_max-1, y_max-1,
-                        np.array([[0 for x in range(y_max + 1)] for y in range(x_max + 1)], dtype=Case17),
+                        np.array([[[[0 for d in range(cCaseMaxDir)] for z in range(max_forward+1)] for y in range(y_max + 1)] for x in range(x_max + 1)], dtype=Case17),
                         cCaseWidth,cCaseHeight)
 
     y = 0
@@ -290,16 +341,17 @@ def getData(filename, part, debug):
 def runpart(debug, part):
     result = 0
     result = 0
-    univers = getData(filename, part, debug)
+    max_forward=3
+    univers = getData(filename, part, debug,max_forward)
     #univers.printAllDir()
     #univers.displayU(True)
-    result=univers.start(0,0,cCaseEast,3)
+    result=univers.start(0,0,0,cCaseEast,max_forward)
     return result
 
 
 if __name__ == '__main__':
     debug = eVisulvl
-    filename = './17.txt'
+    filename = './17-tiny.txt'
     part = 1
 
     print(f"Part 1 : {runpart(debug,1)}")

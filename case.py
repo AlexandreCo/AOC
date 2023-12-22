@@ -1,8 +1,8 @@
 
-cCaseNorth='n'
-cCaseEast='e'
-cCaseSouth='s'
-cCaseWest='w'
+cCaseNorth=0
+cCaseEast=1
+cCaseSouth=2
+cCaseWest=3
 cCaseMaxDir=4
 class Case:
     def __init__(self, debug, name, x, y, num,cCaseWidth,cCaseHeight):
@@ -172,3 +172,5 @@ class Case:
         return self.x,self.y-1
     def getSouth(self):
         return self.x,self.y+1
+
+
