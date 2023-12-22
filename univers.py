@@ -2,13 +2,13 @@ import numpy as np
 
 class Univers:
 
-    def __init__(self, debug, init_x_max, init_y_max,cases):
+    def __init__(self, debug, x_max, y_max,cases):
 
         self.cases = cases
         self.debug = debug
         self.nb_cases = 0
-        self.init_x_max = init_x_max
-        self.init_y_max = init_y_max
+        self.x_max = x_max
+        self.y_max = y_max
 
         self.ants = []
 
@@ -20,8 +20,8 @@ class Univers:
 
     def countVisited(self, debug):
         ret = 0
-        for y in range(0, self.init_y_max):
-            for x in range(0, self.init_x_max):
+        for y in range(0, self.y_max):
+            for x in range(0, self.x_max):
                 if(self.cases[x][y].count):
                     ret+=1
                 if isDebug(debug, eDbglvl):
@@ -35,11 +35,11 @@ class Univers:
 
     def limitXY(self,x,y):
         limit=False;
-        if(x>self.init_x_max):
-            x=self.init_x_max
+        if(x>=self.x_max):
+            x=self.x_max-1
             limit=True
-        if (y > self.init_y_max):
-            y = self.init_y_max
+        if (y >= self.y_max):
+            y = self.y_max-1
             limit = True
         if (x < 0 ):
             x = 0

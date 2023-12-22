@@ -13,30 +13,30 @@ import cv2
 
 class Path:
     def __init__(self,x,y,z,d,heatloss):
-        self.x=x
-        self.y=y
-        self.z=z
+        self.x = x
+        self.y = y
+        self.z = z
         self.d = d
         self.heatloss=heatloss
 
 
 class Univers17(Univers):
 
-    def __init__(self, debug, init_x_max, init_y_max,cases,cCaseWidth,cCaseHeight):
-        Univers.__init__(self,debug,init_x_max, init_y_max ,cases )
-        self.init_z_max=4
-        self.init_d_max=2
+    def __init__(self, debug, x_max, y_max,z_max,d_max,cases,cCaseWidth,cCaseHeight):
+        Univers.__init__(self,debug,x_max, y_max ,cases )
+        self.z_max=z_max
+        self.d_max=d_max
 
 
-        #self.img = np.zeros((self.init_x_max*cCaseHeight, self.init_y_max*cCaseWidth, 3), np.uint8)
-        self.img = np.zeros((self.init_x_max * cCaseHeight, self.init_y_max * cCaseWidth, 3), np.uint8)
+        #self.img = np.zeros((self.x_max*cCaseHeight, self.y_max*cCaseWidth, 3), np.uint8)
+        self.img = np.zeros((self.x_max * cCaseHeight, self.y_max * cCaseWidth, 3), np.uint8)
         self.stepByStep=False
         self.cCaseWidth=cCaseWidth
         self.cCaseWidth = cCaseHeight
 
     def displayU(self, stop):
-        mx=self.init_x_max+1
-        my=self.init_y_max+1
+        mx=self.x_max
+        my=self.y_max
         self.img = np.zeros((my * cCaseWidth, mx * cCaseHeight,  3), np.uint8)
         for y in range(0, my):
             for x in range(0, mx):
@@ -47,11 +47,13 @@ class Univers17(Univers):
         else:
             key = cv2.waitKey(0) & 0x0FF
 
-    def displayPath(self,x,y,stop,dir,z):
+    def displayPath(self,x,y,z,d,stop):
         self.displayU(False)
-        case=self.getCase(x,y,z,dir)
+        case=self.getCase(x,y,z,d)
         for path in case.aPath:
-            c=self.getCase(path.x,path.y,path.z,path.dir)
+            #print("DP :",path.x,path.y,path.z,path.d)
+            c=self.getCase(path.x,path.y,path.z,path.d)
+
             c.displayGrey(cv2, self.img)
         case.displayGrey(cv2, self.img)
         cv2.imshow('img', self.img)
@@ -61,8 +63,8 @@ class Univers17(Univers):
             key = cv2.waitKey(0) & 0x0FF
 
     def printAll(self):
-        mx=self.init_x_max+1
-        my=self.init_y_max+1
+        mx=self.x_max+1
+        my=self.y_max+1
         for y in range(0, my):
             for xn in range(0, mx):
                 th=self.casesNS[xn][y].totalHeatLoss
@@ -77,8 +79,8 @@ class Univers17(Univers):
         print("")
 
     def printAllDir(self):
-        mx = self.init_x_max + 1
-        my = self.init_y_max + 1
+        mx = self.x_max + 1
+        my = self.y_max + 1
         for y in range(0, my):
             for x in range(0, mx):
                 print("[{0}] | ".format(self.casesNS[x][y].nativedir), end="")
@@ -89,8 +91,8 @@ class Univers17(Univers):
         print("")
     def addCase(self, heatloss, x, y):
         debug = self.debug
-        for z in range(0,4):
-            for d in range(0, 4):
+        for z in range(0,self.z_max):
+            for d in range(0, self.d_max):
                 self.cases[x][y][z][d] = Case17(debug,heatloss,x,y,z,d,self.nb_cases)
 
         self.nb_cases += 1
@@ -99,44 +101,10 @@ class Univers17(Univers):
         self.cases[x][y][z][d].totalHeatLoss = totalHeatLoss
 
 
-    def getNbF(self,case):
-
-        if(len(case.aPath)==0):
-            return 0
-        if(len(case.aPath)==1):
-            return 0
-        if(len(case.aPath)==2):
-            if(case.aPath[-1]==case.aPath[-2]):
-                return 1
-            else:
-                return 0
-
-        if(len(case.aPath)==3):
-            if (case.aPath[-1] == case.aPath[-2]):
-                if (case.aPath[-2] == case.aPath[-3]):
-                    return 2
-                else:
-                    return 1
-            else:
-                return 0
-
-        if (case.aPath[-1] == case.aPath[-2]):
-            if (case.aPath[-2] == case.aPath[-3]):
-                if (case.aPath[-3] == case.aPath[-4]):
-                    return 3
-                else:
-                    return 2
-            else:
-                return 1
-        else:
-            return 0
-
-        return 0
-
     def limitXYZ(self,x,y,z):
         limit,x,y=Univers.limitXY(self,x,y)
-        if (z > self.init_z_max):
-            z = self.init_z_max
+        if (z >= self.z_max):
+            z = self.z_max-1
             limit = True
         if (z < 0 ):
             z = 0
@@ -153,7 +121,7 @@ class Univers17(Univers):
             if (th > h):
                 th = h
                 p = new.aPath.copy()
-                p.append(Path(new.x,new.y,new.z,dir,th))
+                p.append(Path(new.x,new.y,new.z,new.d,th))
                 neighbor.aPath = p
                 self.setTotalHeatLoss(neighbor.x,neighbor.y,neighbor.z,neighbor.d,th)
                 aCases.append(neighbor)
@@ -174,49 +142,49 @@ class Univers17(Univers):
 
 
     def getCase(self,x,y,z,d):
-        print("GC : ",x,y,z,d)
-        if(d==4):
-            print("error")
         return self.cases[x][y][z][d]
 
 
     def start(self,x,y,z,d,max_forward):
         self.aCases=[]
-        print("S=>", x, y, z, d)
+        # init algo : set the first case into working queue
         case=self.getCase(x,y,z,d)
-
         case.aPath.append(Path(x, y, z, d,0))
-
         self.setTotalHeatLoss(x, y, z, d, 0)
-
-        #case.dir=dir
         self.aCases.append(case)
 
         while len(self.aCases):
+            #working queue not empty
+
             new=self.getLowest()
-            print("N=>",new.x,new.y,new.z,new.d)
+            #print("N=>",new.x,new.y,new.z,new.d)
             x,y,z,d=new.getForward()
-
-            print("F=>",x, y, z, d)
+            #print("F=>",x, y, z, d)
             self.addWorkingCase(self.aCases,new,x,y,z,d)
-
             x,y,z,d=new.getRight()
-            print("R=>", x, y, z, d)
+            #print("R=>", x, y, z, d)
             self.addWorkingCase(self.aCases,new,x,y,z,d)
-
             x,y,z,d=new.getLeft()
-            print("L=>", x, y, z, d)
+            #print("L=>", x, y, z, d)
             self.addWorkingCase(self.aCases,new,x,y,z,d)
-            print("")
+            #print("")
 
 
-        xfinal=self.init_x_max
-        yfinal=self.init_y_max
-        for z in range (0,4):
-            print("n:",self.getCase(xfinal, yfinal, z, cCaseNorth).totalHeatLoss)
-            print("e:",self.getCase(xfinal, yfinal,  z, cCaseEast).totalHeatLoss)
-            self.displayPath(xfinal, yfinal, True, cCaseEast,z)
-        #self.displayPath(xfinal, yfinal, True, cCaseNorth)
+        xfinal=self.x_max-1
+        yfinal=self.y_max-1
+
+        min=10000000
+        zf=0
+        df=0
+        for z in range (0,self.z_max):
+            for d in range(0, self.d_max):
+                th=self.getCase(xfinal, yfinal, z, d).totalHeatLoss
+                if(min>th):
+                    zf=z
+                    df=d
+                    min=th
+        self.displayPath(xfinal,yfinal,zf,df,True)
+
         return 0
 class Case17(Case):
     def __init__(self, debug, heatloss, x, y, z,d,num):
@@ -226,6 +194,7 @@ class Case17(Case):
         self.aPath = []
         self.z=z
         self.d = d
+
         if(d==cCaseNorth):
             self.dx = 0
             self.dy = -1
@@ -321,8 +290,8 @@ def getData(filename, part, debug,max_forward):
     j = 0
     x_max,y_max=getUniversSize(lines)
     univers = Univers17(debug,
-                        x_max-1, y_max-1,
-                        np.array([[[[0 for d in range(cCaseMaxDir)] for z in range(max_forward+1)] for y in range(y_max + 1)] for x in range(x_max + 1)], dtype=Case17),
+                        x_max, y_max,max_forward,cCaseMaxDir,
+                        np.array([[[[0 for d in range(cCaseMaxDir)] for z in range(max_forward)] for y in range(y_max)] for x in range(x_max)], dtype=Case17),
                         cCaseWidth,cCaseHeight)
 
     y = 0
@@ -343,15 +312,14 @@ def runpart(debug, part):
     result = 0
     max_forward=3
     univers = getData(filename, part, debug,max_forward)
-    #univers.printAllDir()
-    #univers.displayU(True)
     result=univers.start(0,0,0,cCaseEast,max_forward)
     return result
 
 
 if __name__ == '__main__':
     debug = eVisulvl
-    filename = './17-tiny.txt'
+    filename = './17.txt'
+    #filename = ('./17.txt')
     part = 1
 
     print(f"Part 1 : {runpart(debug,1)}")
