@@ -20,6 +20,10 @@ class Case:
         self.aE = False
         self.aW = False
 
+        self.adx = [0, 1, 0, -1]
+        self.ady = [-1, 0, 1, 0]
+
+
         self.count=0;
 
     def __lt__(self, other):
@@ -172,5 +176,28 @@ class Case:
         return self.x,self.y-1
     def getSouth(self):
         return self.x,self.y+1
+
+    def getForward(self,d):
+        x=self.x + self.adx[d]
+        y=self.y + self.ady[d]
+        return x, y, d
+
+    def getBackward(self,d):
+        d=-d
+        x = self.x + self.adx[d]
+        y = self.y + self.ady[d]
+        return x, y, d
+
+    def getRight(self,d):
+        d= (d + 1) % 4
+        x=self.x + self.adx[d]
+        y=self.y + self.ady[d]
+        return x, y, d
+
+    def getLeft(self,d):
+        d= (d - 1) % 4
+        x=self.x + self.adx[d]
+        y=self.y + self.ady[d]
+        return x, y, d
 
 

@@ -111,6 +111,7 @@ class Univers17(Univers):
             limit = True
         return limit,x,y,z
 
+
     def addWorkingCase(self,aCases,new, x, y, z, d):
 
         limit, x, y , z = self.limitXYZ(x, y , z)
@@ -145,34 +146,32 @@ class Univers17(Univers):
         return self.cases[x][y][z][d]
 
 
-    def start(self,x,y,z,d,max_forward):
+    def start(self,x,y,z,d,min_forward):
         self.aCases=[]
+        self.zmin=min_forward
+
         # init algo : set the first case into working queue
         case=self.getCase(x,y,z,d)
         case.aPath.append(Path(x, y, z, d,0))
         self.setTotalHeatLoss(x, y, z, d, 0)
         self.aCases.append(case)
 
+
         while len(self.aCases):
-            #working queue not empty
-
+            #working queue not empty => test the case with lowest total heatLoss
             new=self.getLowest()
-            #print("N=>",new.x,new.y,new.z,new.d)
             x,y,z,d=new.getForward()
-            #print("F=>",x, y, z, d)
-            self.addWorkingCase(self.aCases,new,x,y,z,d)
-            x,y,z,d=new.getRight()
-            #print("R=>", x, y, z, d)
-            self.addWorkingCase(self.aCases,new,x,y,z,d)
-            x,y,z,d=new.getLeft()
-            #print("L=>", x, y, z, d)
-            self.addWorkingCase(self.aCases,new,x,y,z,d)
-            #print("")
-
-
+            self.addWorkingCase(self.aCases,new,x,y,z,d,)
+            if(new.z>self.zmin-1):
+                x, y, z, d = new.getRight()
+                self.addWorkingCase(self.aCases,new,x,y,z,d)
+            if(new.z>self.zmin-1):
+                x, y, z, d = new.getLeft()
+                self.addWorkingCase(self.aCases,new,x,y,z,d)
+            #display every turn
+            #self.displayPath(new.x, new.y, new.z, new.d, False)
         xfinal=self.x_max-1
         yfinal=self.y_max-1
-
         min=10000000
         zf=0
         df=0
@@ -183,30 +182,19 @@ class Univers17(Univers):
                     zf=z
                     df=d
                     min=th
-        self.displayPath(xfinal,yfinal,zf,df,True)
+        # display part 1 and 2
+        #self.displayPath(xfinal,yfinal,zf,df,True)
+        return min
 
-        return 0
 class Case17(Case):
     def __init__(self, debug, heatloss, x, y, z,d,num):
         Case.__init__(self, debug, heatloss, x, y, num,cCaseWidth,cCaseHeight)
         self.heatloss=int(heatloss)
         self.totalHeatLoss=10000
         self.aPath = []
-        self.z=z
+        self.z = z
         self.d = d
 
-        if(d==cCaseNorth):
-            self.dx = 0
-            self.dy = -1
-        if(d==cCaseEast):
-            self.dx = 1
-            self.dy = 0
-        if(d==cCaseSouth):
-            self.dx = 0
-            self.dy = 1
-        if(d==cCaseWest):
-            self.dx = -1
-            self.dy = -0
     def display(self, cv2, img):
         color=(255-int(self.heatloss)*25, 0, 0)
         self.cv2DisplayBack(cv2, img,color)
@@ -230,40 +218,26 @@ class Case17(Case):
         self.totalHeatLoss
 
     def getForward(self):
-        x=self.x+self.dx
-        y=self.y+self.dy
+        x, y, d=Case.getForward(self,self.d)
         z=self.z+1
-        d=self.d
         return x,y,z,d
 
     def getBackward(self):
-        x = self.x - self.dx
-        y = self.y - self.dy
+        x, y, d  = Case.getBackward(self, self.d)
         z = self.z + 1
-        d = self.d
         return x, y, z, d
 
     def getRight(self):
-        x=self.x+self.dx
-        y=self.y+self.dy
-        z=0
-        d=self.d+1
-        if(d==4):
-            d=0
+        x, y, d = Case.getRight(self, self.d)
+        z = 0
         return x, y, z, d
 
     def getLeft(self):
-        x=self.x+self.dx
-        y=self.y+self.dy
-        z=0
-        d=self.d-1
-        if(d==-1):
-            d=3
+        x, y, d = Case.getLeft(self, self.d)
+        z = 0
         return x, y, z, d
 
-
-
-coef=10
+coef=1
 cCaseWidth=7*coef
 cCaseHeight=7*coef
 
@@ -307,23 +281,19 @@ def getData(filename, part, debug,max_forward):
     return univers
 
 
-def runpart(debug, part):
-    result = 0
-    result = 0
-    max_forward=3
+def runpart(debug, part,min_forward,max_forward):
     univers = getData(filename, part, debug,max_forward)
-    result=univers.start(0,0,0,cCaseEast,max_forward)
+    result=univers.start(0,0,0,cCaseSouth,min_forward)
     return result
 
 
 if __name__ == '__main__':
     debug = eVisulvl
     filename = './17.txt'
-    #filename = ('./17.txt')
     part = 1
 
-    print(f"Part 1 : {runpart(debug,1)}")
-    #print(f"Part 2 : {runpart(debug,2)}")
+    print(f"Part 1 : {runpart(debug,1, 0,3)}")
+    print(f"Part 2 : {runpart(debug,2, 3,10)}")
 
 
 
